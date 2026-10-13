@@ -111,6 +111,12 @@ button{font-family:inherit}
 .main .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .main h3{font-weight:300;font-size:22px;letter-spacing:-.02em}
 .main h3 span{color:var(--muted)}
+.periodo{position:relative;display:inline-flex;align-items:center;gap:8px;margin-bottom:18px}
+.periodo label{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.periodo select{appearance:none;-webkit-appearance:none;background:var(--ink-2);color:var(--text);border:1px solid var(--line-2);border-radius:999px;
+  font:500 13px Sora,system-ui,sans-serif;padding:9px 34px 9px 14px;cursor:pointer;outline:0;text-transform:capitalize}
+.periodo select:focus{border-color:rgba(43,230,186,.5)}
+.periodo svg{position:absolute;right:12px;width:12px;height:12px;pointer-events:none;color:var(--muted)}
 .tabs{display:inline-flex;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--ink-2)}
 .tabs button{border:0;background:none;color:var(--muted);font-size:12px;padding:7px 13px;border-radius:999px;cursor:pointer;transition:all .2s;white-space:nowrap}
 .tabs button[aria-pressed="true"]{background:var(--ink-3);color:var(--text);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 0 0 1px var(--line-2)}
@@ -199,6 +205,13 @@ button{font-family:inherit}
           <h1>Quem cada <b>vendedor</b> trouxe</h1>
         </div>
 
+        <div class="periodo">
+          <label for="mes">Período</label>
+          <span style="position:relative;display:inline-flex;align-items:center">
+            <select id="mes"><option value="">Todos os meses</option></select>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </span>
+        </div>
         <div class="total">
           <div class="big num" id="tot">0</div>
           <div class="lab"><b id="totLab">pessoas indicadas</b><span id="totSub"></span></div>
@@ -243,7 +256,10 @@ button{font-family:inherit}
   const VENDEDORES = ['PRM 1','PRM 2','PRM 3','PRM 4','PRM 5'];
   const SEM = 'Sem vendedor identificado';
   const $ = id => document.getElementById(id);
-  let dados = null, filtro = null, conta = '', senha = null;
+  let dados = null, filtro = null, conta = '', senha = null, mes = '';
+  const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const mesDe = d => d ? String(d).slice(0,7) : '';
+  const noMes = d => !mes || mesDe(d) === mes;
 
   function guardar(v){ try{ v ? sessionStorage.setItem('ind_s', v) : sessionStorage.removeItem('ind_s'); }catch(e){} }
   function lido(){ try{ return sessionStorage.getItem('ind_s'); }catch(e){ return null; } }
@@ -286,8 +302,11 @@ button{font-family:inherit}
     const at = dados.atualizado_em ? new Date(dados.atualizado_em) : null;
     $('atu').textContent = at ? 'Atualizado em ' + at.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}) : '';
 
-    const cl = dados.clientes || [];
-    const chamaram = {}; (dados.vendedores||[]).forEach(v => chamaram[v.vendedor] = v.chamaram);
+    preencherMeses();
+    const cl = (dados.clientes || []).filter(c => noMes(c.entrada || c.cadastro));
+    const chamaram = {};
+    if (dados.indicados) dados.indicados.forEach(i => { if (noMes(i.em)) chamaram[i.vendedor] = (chamaram[i.vendedor]||0) + 1; });
+    else (dados.vendedores||[]).forEach(v => chamaram[v.vendedor] = v.chamaram);
     const clientes = {}; cl.forEach(c => clientes[c.vendedor] = (clientes[c.vendedor]||0) + 1);
     const nomes = VENDEDORES.slice();
     Object.keys(chamaram).concat(Object.keys(clientes)).forEach(n => { if(n!==SEM && nomes.indexOf(n)<0) nomes.push(n); });
@@ -345,9 +364,25 @@ button{font-family:inherit}
     li.appendChild(b); return li;
   }
 
+  function preencherMeses(){
+    const sel = $('mes');
+    const set = new Set();
+    (dados.clientes||[]).forEach(c => { const m = mesDe(c.entrada || c.cadastro); if (m) set.add(m); });
+    (dados.indicados||[]).forEach(i => { const m = mesDe(i.em); if (m) set.add(m); });
+    const lista = Array.from(set).sort().reverse();
+    const atual = Array.from(sel.options).slice(1).map(o => o.value).join(',');
+    if (atual !== lista.join(',')) {
+      while (sel.options.length > 1) sel.remove(1);
+      lista.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = MESES[+m.slice(5,7)-1] + ' ' + m.slice(0,4); sel.appendChild(o); });
+    }
+    if (mes && lista.indexOf(mes) < 0) mes = '';
+    sel.value = mes;
+  }
+
   function lista(){
     const q = $('busca').value.trim().toLowerCase(), qd = q.replace(/\D/g,'');
     const rows = (dados.clientes||[]).filter(c => {
+      if(!noMes(c.entrada || c.cadastro)) return false;
       if(filtro && c.vendedor !== filtro) return false;
       if(conta && c.barra !== conta) return false;
       if(!q) return true;
@@ -369,7 +404,7 @@ button{font-family:inherit}
     }
     rows.forEach(c => {
       const tr = el('tr');
-      const a = el('td','who'); a.appendChild(el('b',null,nomeBonito(c.nome))); a.appendChild(el('span',null,'Cadastro ' + fmtData(c.cadastro))); tr.appendChild(a);
+      const a = el('td','who'); a.appendChild(el('b',null,nomeBonito(c.nome))); a.appendChild(el('span',null,'Entrou em ' + fmtData(c.entrada || c.cadastro))); tr.appendChild(a);
       const ct = el('td','c-ct'); const box = el('div','ct'); box.appendChild(cp(c.email,'')); box.appendChild(cp(c.telefone,'tel')); ct.appendChild(box); tr.appendChild(ct);
       const k = el('td','c-conta'); k.appendChild(el('span','badge' + (c.barra==='SEJA LIVRE 110'?' com':''), c.conta||'—')); tr.appendChild(k);
       const v = el('td','c-vend'); v.appendChild(el('span','vend' + (c.vendedor===SEM?' no':''), c.vendedor===SEM ? '—' : c.vendedor)); tr.appendChild(v);
@@ -390,10 +425,11 @@ button{font-family:inherit}
 
   $('f').addEventListener('submit', e => { e.preventDefault(); const s = $('senha').value.trim(); if(s) entrar(s, false); });
   $('busca').addEventListener('input', lista);
+  $('mes').addEventListener('change', e => { mes = e.target.value; render(); });
   $('chip').addEventListener('click', () => { filtro = null; render(); });
   document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => { conta = b.dataset.c; render(); }));
   $('atualizar').addEventListener('click', () => senha && entrar(senha, true).then(ok => ok && toast('Atualizado')));
-  $('sair').addEventListener('click', () => { guardar(null); senha=null; dados=null; filtro=null; conta=''; $('senha').value=''; mostrar(false); });
+  $('sair').addEventListener('click', () => { guardar(null); senha=null; dados=null; filtro=null; conta=''; mes=''; $('senha').value=''; mostrar(false); });
 
   const s = lido(); if(s) entrar(s, true);
 })();
