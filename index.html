@@ -192,12 +192,12 @@ button{font-family:inherit}
 
         <div class="total">
           <div class="big num" id="tot">0</div>
-          <div class="lab"><b id="totLab">clientes nas suas barras</b><span id="totSub"></span></div>
+          <div class="lab"><b id="totLab">pessoas indicadas</b><span id="totSub"></span></div>
         </div>
 
-        <div class="sec"><h2>Por vendedor</h2><small>clientes</small></div>
+        <div class="sec"><h2>Por vendedor</h2><small>abriram conta</small></div>
         <ul class="board" id="board"></ul>
-        <div class="legend"><span>virou cliente</span><span>chamou no WhatsApp</span></div>
+        <div class="legend"><span>abriu conta</span><span>indicado</span></div>
       </aside>
 
       <section class="main">
@@ -285,9 +285,12 @@ button{font-family:inherit}
 
     const totCham = Object.values(chamaram).reduce((a,b)=>a+b,0);
     const indicados = cl.length - (clientes[SEM]||0);
-    $('tot').textContent = cl.length;
-    $('totLab').textContent = plural(cl.length,'cliente','clientes') + ' nas barras 109 e 110';
-    $('totSub').textContent = indicados + ' ' + plural(indicados,'veio','vieram') + ' por vendedor · ' + totCham + ' ' + plural(totCham,'pessoa chamou','pessoas chamaram') + ' no WhatsApp';
+    const sem = clientes[SEM]||0;
+    $('tot').textContent = totCham;
+    $('totLab').textContent = plural(totCham,'pessoa indicada','pessoas indicadas') + ' pelos vendedores';
+    $('totSub').textContent = indicados + ' ' + plural(indicados,'abriu conta','abriram conta') +
+      (totCham ? ' (' + Math.round(indicados/totCham*100) + '%)' : '') +
+      (sem ? ' · ' + sem + ' ' + plural(sem,'cliente','clientes') + ' sem etiqueta PRM' : '');
 
     const max = Math.max(1, ...nomes.map(n => Math.max(chamaram[n]||0, clientes[n]||0)), clientes[SEM]||0);
     const B = $('board'); B.textContent = '';
@@ -308,7 +311,7 @@ button{font-family:inherit}
     const i = el('i'); i.style.width = (n/max*100) + '%'; tr.appendChild(i);
     b.appendChild(tr);
     b.appendChild(el('span','n num', String(n)));
-    b.appendChild(el('span','sub', sem ? 'clientes sem etiqueta PRM' : cham + ' ' + plural(cham,'chamou','chamaram') + ' no WhatsApp'));
+    b.appendChild(el('span','sub', sem ? 'clientes sem etiqueta PRM' : cham + ' ' + plural(cham,'indicado','indicados')));
     b.addEventListener('click', () => { filtro = (filtro===chave ? null : chave); render(); });
     li.appendChild(b); return li;
   }
