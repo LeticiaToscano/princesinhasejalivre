@@ -79,24 +79,33 @@ button{font-family:inherit}
 .sec h2{font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
 .sec small{font-family:var(--mono);font-size:10.5px;color:var(--dim);letter-spacing:.06em}
 .board{list-style:none;display:flex;flex-direction:column}
-.v{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:14px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);
-  color:var(--text);padding:14px 10px;cursor:pointer;border-radius:10px;position:relative;transition:background .2s}
-.v:hover{background:rgba(255,255,255,.025)}
-.v[aria-pressed="true"]{background:var(--live-soft)}
-.v[aria-pressed="true"]::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:2px;border-radius:2px;background:var(--live);box-shadow:0 0 10px var(--live)}
-.v .id{font-family:var(--mono);font-size:13px;color:var(--muted);letter-spacing:.02em}
+.board{gap:8px}
+.v{display:block;width:100%;text-align:left;background:var(--ink-2);border:1px solid var(--line);border-radius:14px;
+  color:var(--text);padding:16px 16px 14px;cursor:pointer;position:relative;transition:border-color .2s,background .2s,transform .1s}
+.v:hover{border-color:var(--line-2)}
+.v:active{transform:scale(.995)}
+.v[aria-pressed="true"]{border-color:rgba(43,230,186,.5);background:linear-gradient(140deg,rgba(43,230,186,.10),rgba(15,167,126,.02))}
+.v .row1{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.v .id{font-family:var(--mono);font-size:12px;letter-spacing:.06em;color:var(--muted)}
 .v[aria-pressed="true"] .id{color:var(--live)}
-.v .track{height:6px;border-radius:6px;background:rgba(255,255,255,.05);overflow:hidden;position:relative}
-.v .track i{position:absolute;inset:0 auto 0 0;border-radius:6px;background:linear-gradient(90deg,var(--live-2),var(--live));box-shadow:0 0 12px rgba(43,230,186,.45);transition:width .6s cubic-bezier(.2,.8,.2,1)}
-.v .track u{position:absolute;inset:0 auto 0 0;border-radius:6px;background:rgba(255,255,255,.10);text-decoration:none}
-.v .sub{grid-column:2;font-size:11px;color:var(--dim);margin-top:-6px;font-weight:300}
-.v .n{grid-row:1 / span 2;grid-column:3;text-align:right;font-weight:300;font-size:26px;letter-spacing:-.03em;min-width:36px}
-.v.zero .n{color:var(--dim)}
-.v.sem .id{color:var(--dim)}
-.v.sem .track i{background:rgba(255,255,255,.22);box-shadow:none}
+.v .pct{font-family:var(--mono);font-size:12px;color:var(--live);background:var(--live-soft);border-radius:999px;padding:3px 9px}
+.v .row2{display:flex;align-items:baseline;gap:8px;margin:10px 0 12px}
+.v .n{font-weight:300;font-size:38px;line-height:.9;letter-spacing:-.04em}
+.v .n small{font-size:20px;color:var(--dim);letter-spacing:-.02em}
+.v .lab{font-size:12.5px;color:var(--muted);font-weight:300;line-height:1.35}
+.v .lab b{color:var(--text);font-weight:500}
+.v .track{display:flex;gap:3px;height:8px}
+.v .track i{flex:1;border-radius:3px;background:rgba(255,255,255,.07)}
+.v .track i.on{background:linear-gradient(180deg,#5CF0CB,var(--live-2));box-shadow:0 0 10px rgba(43,230,186,.35)}
+.v .bar{height:8px;border-radius:8px;background:rgba(255,255,255,.07);overflow:hidden}
+.v .bar i{display:block;height:100%;border-radius:8px;background:linear-gradient(90deg,var(--live-2),#5CF0CB);box-shadow:0 0 12px rgba(43,230,186,.4)}
+.v.zero{padding:12px 16px;background:transparent;border-style:dashed}
+.v.zero .row1{align-items:center}
+.v.zero .vazio{font-size:12px;color:var(--dim);font-weight:300}
+.v.sem .n{color:var(--text)}
 .legend{display:flex;gap:16px;margin-top:14px;font-size:11px;color:var(--dim)}
-.legend span::before{content:"";display:inline-block;width:10px;height:4px;border-radius:4px;margin-right:6px;vertical-align:2px;background:linear-gradient(90deg,var(--live-2),var(--live))}
-.legend span+span::before{background:rgba(255,255,255,.18)}
+.legend span::before{content:"";display:inline-block;width:10px;height:8px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:linear-gradient(180deg,#5CF0CB,var(--live-2))}
+.legend span+span::before{background:rgba(255,255,255,.12)}
 
 /* lista */
 .main .head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
@@ -195,9 +204,9 @@ button{font-family:inherit}
           <div class="lab"><b id="totLab">pessoas indicadas</b><span id="totSub"></span></div>
         </div>
 
-        <div class="sec"><h2>Por vendedor</h2><small>abriram conta</small></div>
+        <div class="sec"><h2>Por vendedor</h2><small>toque para filtrar</small></div>
         <ul class="board" id="board"></ul>
-        <div class="legend"><span>abriu conta</span><span>indicado</span></div>
+        <div class="legend"><span>abriu conta</span><span>ainda não abriu</span></div>
       </aside>
 
       <section class="main">
@@ -303,15 +312,35 @@ button{font-family:inherit}
 
   function linha(chave, rotulo, n, cham, max, sem){
     const li = el('li');
-    const b = el('button','v' + (n?'':' zero') + (sem?' sem':''));
+    const zero = !sem && !cham && !n;
+    const b = el('button','v' + (zero?' zero':'') + (sem?' sem':''));
     b.type='button'; b.setAttribute('aria-pressed', filtro===chave ? 'true':'false');
-    b.appendChild(el('span','id', rotulo));
-    const tr = el('span','track');
-    const u = el('u'); u.style.width = (cham/max*100) + '%'; tr.appendChild(u);
-    const i = el('i'); i.style.width = (n/max*100) + '%'; tr.appendChild(i);
-    b.appendChild(tr);
-    b.appendChild(el('span','n num', String(n)));
-    b.appendChild(el('span','sub', sem ? 'clientes sem etiqueta PRM' : cham + ' ' + plural(cham,'indicado','indicados')));
+    const r1 = el('div','row1');
+    r1.appendChild(el('span','id', sem ? 'SEM VENDEDOR' : rotulo));
+    if (zero) { r1.appendChild(el('span','vazio','Nenhum indicado ainda')); b.appendChild(r1); b.disabled = true; li.appendChild(b); return li; }
+    const total = Math.max(cham, n);
+    if (!sem) r1.appendChild(el('span','pct', Math.round(n/total*100) + '% abriram'));
+    b.appendChild(r1);
+
+    const r2 = el('div','row2');
+    const num = el('span','n num', String(n));
+    if (!sem) { const sm = el('small',null,'/' + total); num.appendChild(sm); }
+    r2.appendChild(num);
+    const lab = el('span','lab');
+    if (sem) lab.textContent = plural(n,'cliente sem etiqueta PRM','clientes sem etiqueta PRM');
+    else { lab.appendChild(el('b',null, plural(n,'abriu conta','abriram conta'))); lab.appendChild(el('br')); lab.appendChild(document.createTextNode('de ' + total + ' ' + plural(total,'indicado','indicados'))); }
+    r2.appendChild(lab);
+    b.appendChild(r2);
+
+    if (!sem) {
+      if (total <= 30) {
+        const tr = el('div','track');
+        for (let k = 0; k < total; k++) tr.appendChild(el('i', k < n ? 'on' : ''));
+        b.appendChild(tr);
+      } else {
+        const bar = el('div','bar'); const f = el('i'); f.style.width = (n/total*100) + '%'; bar.appendChild(f); b.appendChild(bar);
+      }
+    }
     b.addEventListener('click', () => { filtro = (filtro===chave ? null : chave); render(); });
     li.appendChild(b); return li;
   }
